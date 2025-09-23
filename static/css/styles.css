@@ -1,0 +1,18 @@
+/* Estilos mínimos para dar estrutura; sinta-se à vontade para personalizar */
+:root { --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#9ca3af; --brand:#60a5fa; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background: var(--bg); color: var(--text); }
+.navbar { display:flex; align-items:center; gap:16px; padding:12px 20px; background: rgba(0,0,0,.35); position: sticky; top:0; backdrop-filter: blur(6px); }
+.brand { color: var(--brand); text-decoration: none; font-weight: 700; }
+.nav-link { color: var(--text); text-decoration: none; opacity: .6; }
+.nav-link.disabled { pointer-events: none; }
+.container { max-width: 920px; margin: 24px auto; padding: 0 16px; }
+.footer { border-top: 1px solid #1f2937; padding: 16px 20px; text-align:center; opacity:.7; }
+
+.post-list { list-style: none; padding: 0; display: grid; gap: 16px; }
+.post-card { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid #1f2937; }
+.meta { color: var(--muted); font-size: 0.9rem; margin-top: -6px; }
+
+.quote-box { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid #1f2937; }
+.quote-en { color: var(--muted); font-size: .95rem; margin-top: 8px; }
+.quote-author { color: var(--muted); margin-top: 4px; }

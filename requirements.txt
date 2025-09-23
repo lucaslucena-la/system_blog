@@ -1,0 +1,19 @@
+# Web e template
+Flask
+Jinja2
+
+# Banco e autenticação
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
+email-validator      # validação de e-mail nos forms (WTForms)
+
+# E-mail e tokens
+Flask-Mail
+itsdangerous
+
+# HTTP
+requests
+
+# Variáveis de ambiente
+python-dotenv

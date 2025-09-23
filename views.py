@@ -9,8 +9,7 @@ from flask_login import login_user, current_user, logout_user, login_required
 from flask_mail import Message
 from app import app, db, bcrypt, mail
 from models import User, Post
-from forms import (RegistrationForm, LoginForm, UpdateAccountForm, PostForm,
-                   ResetPasswordRequestForm, ResetPasswordForm)
+from forms import (RegistrationForm, LoginForm, UpdateAccountForm, PostForm,ResetPasswordRequestForm, ResetPasswordForm)
 
 # Variável global para armazenar a citação do dia
 quote_of_the_day = {}
@@ -50,9 +49,9 @@ def get_and_translate_quote():
         quote_of_the_day = {'translated_content': 'Não foi possível carregar a citação do dia.'}
 
 # Inicia a thread para buscar a citação assim que a aplicação for iniciada
-thread = Thread(target=get_and_translate_quote)
-thread.daemon = True # Garante que a thread será encerrada com a aplicação
-thread.start()
+#thread = Thread(target=get_and_translate_quote)
+#thread.daemon = True # Garante que a thread será encerrada com a aplicação
+#thread.start()
 
 # Rota da página inicial
 @app.route("/")

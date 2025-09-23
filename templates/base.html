@@ -1,0 +1,27 @@
+<!-- templates/base.html: layout base com navbar simples e bloco de conteúdo -->
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}System Blog{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">    
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="{{ url_for('home') }}" class="brand">System Blog</a>
+    <div class="spacer"></div>
+    <!-- futuros links: login, registrar, perfil, admin -->
+    <a href="#" class="nav-link disabled">Login</a>
+    <a href="#" class="nav-link disabled">Registrar</a>
+  </nav>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <small>&copy; {{ 2025 }} System Blog</small>
+  </footer>
+</body>
+</html>

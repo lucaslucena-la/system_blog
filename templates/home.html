@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Home • System Blog{% endblock %}
+{% block content %}
+  <h1>Postagens Recentes</h1>
+
+  <!-- Lista de posts -->
+  {% if posts %}
+    <ul class="post-list">
+      {% for post in posts %}
+        <li class="post-card">
+          <h3>{{ post.title }}</h3>
+          <p class="meta">por {{ post.author.username }} • {{ post.created_at.strftime("%d/%m/%Y %H:%M") }}</p>
+          <p>{{ post.content[:240] }}{% if post.content|length > 240 %}...{% endif %}</p>
+          <!-- depois: link para página de detalhes -->
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Nenhum post ainda.</p>
+  {% endif %}
+
+  <hr>
+
+  <!-- Citação do dia (carregada de forma assíncrona via fetch) -->
+  <section id="quote-section">
+    <h2>Citação do dia</h2>
+    <div id="quote-box" class="quote-box">
+      <em>Carregando citação…</em>
+    </div>
+  </section>
+
+  <script>
+    // Chamada assíncrona: busca a citação sem travar o carregamento da página
+    fetch("{{ url_for('get_quote') }}")
+      .then(r => r.json())
+      .then(data => {
+        const box = document.getElementById("quote-box");
+        if (!data.ok) {
+          box.innerHTML = "<em>Não foi possível obter a citação agora.</em>";
+          return;
+        }
+        const en = data.quote_en;
+        const pt = data.quote_pt;
+        const author = data.author || "Desconhecido";
+        box.innerHTML = `
+          <p class="quote-pt">“${pt}”</p>
+          <p class="quote-en">[EN] ${en}</p>
+          <p class="quote-author">— ${author}</p>
+        `;
+      })
+      .catch(() => {
+        document.getElementById("quote-box").innerHTML = "<em>Falha ao carregar a citação.</em>";
+      });
+  </script>
+{% endblock %}
