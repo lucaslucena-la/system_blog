@@ -9,24 +9,27 @@
                         <a class="mr-2" href="{{ url_for('user_posts', username=post.author.username) }}">{{ post.author.username }}</a>
                         <small class="text-muted">{{ post.date_posted.strftime('%d/%m/%Y, %H:%M') }}</small>
                     </div>
-                    <!-- Lógica de Permissões: Somente o autor, moderador ou admin vê os botões -->
-                    {% if post.author == current_user or is_moderator(current_user) %}
-                        <div class="mt-2">
-                            <!-- Botão Editar: Visível apenas para o autor -->
-                            {% if post.author == current_user %}
-                                <a class="btn btn-info btn-sm" href="{{ url_for('update_post', post_id=post.id) }}">Editar</a>
-                            {% endif %}
-                            
-                            <!-- Botão Excluir: Visível para o autor, moderador ou admin -->
-                            <!-- Usa um modal simples para confirmação antes de enviar o POST de exclusão -->
-                            <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal">
-                                Excluir
-                            </button>
-                        </div>
+                    
+                    <!-- Lógica de Permissões: Visível se for autor OU moderador/admin -->
+                    {% if current_user.is_authenticated %}
+                        {% if post.author == current_user or is_moderator(current_user) %}
+                            <div class="mt-2">
+                                <!-- Botão Editar: Visível APENAS para o autor -->
+                                {% if post.author == current_user %}
+                                    <a class="btn btn-info btn-sm" href="{{ url_for('update_post', post_id=post.id) }}">Editar</a>
+                                {% endif %}
+                                
+                                <!-- Botão Excluir: Visível para autor, moderador OU admin -->
+                                <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal">
+                                    Excluir
+                                </button>
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
             <h2 class="article-title">{{ post.title }}</h2>
+            <!-- O filtro |safe permite quebra de linha ou HTML, se houver -->
             <div class="article-content">
                 {{ post.content|safe }}
             </div>
@@ -34,6 +37,7 @@
     </div>
 
     <!-- Modal de Confirmação de Exclusão (Requisito: NÃO usar alert()) -->
+    <!-- Este modal só é útil se for renderizado e ativado pelo botão acima -->
     <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -44,7 +48,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    Tem certeza de que deseja excluir o post "{{ post.title }}"? Esta ação é irreversível.
+                    Tem certeza de que deseja excluir o post **"{{ post.title }}"**? Esta ação é irreversível.
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
@@ -56,9 +60,12 @@
             </div>
         </div>
     </div>
-    
+{% endblock content %}
+
+{% block scripts %}
     <!-- Scripts Adicionais para o Modal (Necessário carregar jQuery e Bootstrap JS) -->
+    <!-- Estes devem ser carregados no final do <body> para evitar erros -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-{% endblock content %}
+{% endblock scripts %}

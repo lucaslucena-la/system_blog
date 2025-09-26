@@ -1,55 +1,105 @@
 {% extends "base.html" %}
 {% block title %}Home • System Blog{% endblock %}
 {% block content %}
-  <h1>Postagens Recentes</h1>
+    <div class="row">
+        <!-- Coluna da Citação do Dia (Pode ser uma barra lateral) -->
+        <div class="col-md-4">
+            <section id="quote-section" class="content-section">
+                <h2 class="border-bottom pb-2 mb-3">Citação do Dia</h2>
+                <div id="quote-box" class="quote-of-the-day">
+                    <p id="quote-text" class="quote-text quote-loading">Carregando citação…</p>
+                    <span id="quote-author" class="quote-author"></span>
+                    <p id="quote-en" class="quote-en"></p>
+                </div>
+                <p class="text-muted text-sm mt-3">Conteúdo obtido via API externa e traduzido de forma assíncrona.</p>
+            </section>
+        </div>
 
-  <!-- Lista de posts -->
-  {% if posts %}
-    <ul class="post-list">
-      {% for post in posts %}
-        <li class="post-card">
-          <h3>{{ post.title }}</h3>
-          <p class="meta">por {{ post.author.username }} • {{ post.created_at.strftime("%d/%m/%Y %H:%M") }}</p>
-          <p>{{ post.content[:240] }}{% if post.content|length > 240 %}...{% endif %}</p>
-          <!-- depois: link para página de detalhes -->
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Nenhum post ainda.</p>
-  {% endif %}
-
-  <hr>
-
-  <!-- Citação do dia (carregada de forma assíncrona via fetch) -->
-  <section id="quote-section">
-    <h2>Citação do dia</h2>
-    <div id="quote-box" class="quote-box">
-      <em>Carregando citação…</em>
+        <!-- Coluna de Postagens Recentes -->
+        <div class="col-md-8">
+            <h1 class="border-bottom mb-4 pb-2">Postagens Recentes</h1>
+            
+            {% if posts %}
+                <!-- Lista de posts -->
+                {% for post in posts %}
+                    <article class="content-section post-article">
+                        <div class="media">
+                            <!-- Imagem de Perfil -->
+                            <img class="article-img" src="{{ url_for('static', filename='profile_pics/' + post.author.image_file) }}" alt="Imagem de Perfil">
+                            <div class="media-body">
+                                <div class="post-meta">
+                                    <!-- Exibe link para posts do autor -->
+                                    <a class="mr-2" href="{{ url_for('user_posts', username=post.author.username) }}">{{ post.author.username }}</a>
+                                    <!-- Exibe a data (usando post.date_posted) -->
+                                    <small class="text-muted">Publicado em: {{ post.date_posted.strftime('%d/%m/%Y, %H:%M') }}</small>
+                                </div>
+                                
+                                <!-- Título do Post com link para a página de detalhes -->
+                                <h2><a class="article-title" href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a></h2>
+                                
+                                <!-- Conteúdo Parcial -->
+                                <p class="article-content">{{ post.content[:240] }}...
+                                    <a href="{{ url_for('post', post_id=post.id) }}" class="text-info">Leia mais</a>
+                                </p>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">Nenhum post ainda. Seja o primeiro a publicar!</div>
+            {% endif %}
+        </div>
     </div>
-  </section>
+{% endblock content %}
 
-  <script>
-    // Chamada assíncrona: busca a citação sem travar o carregamento da página
-    fetch("{{ url_for('get_quote') }}")
-      .then(r => r.json())
-      .then(data => {
-        const box = document.getElementById("quote-box");
-        if (!data.ok) {
-          box.innerHTML = "<em>Não foi possível obter a citação agora.</em>";
-          return;
-        }
-        const en = data.quote_en;
-        const pt = data.quote_pt;
-        const author = data.author || "Desconhecido";
-        box.innerHTML = `
-          <p class="quote-pt">“${pt}”</p>
-          <p class="quote-en">[EN] ${en}</p>
-          <p class="quote-author">— ${author}</p>
-        `;
-      })
-      .catch(() => {
-        document.getElementById("quote-box").innerHTML = "<em>Falha ao carregar a citação.</em>";
-      });
-  </script>
-{% endblock %}
+{% block scripts %}
+<script>
+    // Função para buscar a citação do dia de forma assíncrona
+    function fetchQuote() {
+        const url = "{{ url_for('get_quote') }}";
+        
+        const quoteText = document.getElementById('quote-text');
+        const quoteAuthor = document.getElementById('quote-author');
+        const quoteEn = document.getElementById('quote-en');
+
+        // Estado inicial de carregamento
+        quoteText.textContent = 'Carregando citação…';
+        quoteText.classList.add('quote-loading');
+        quoteAuthor.textContent = '';
+        quoteEn.textContent = '';
+
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                // Remove a classe de carregamento
+                quoteText.classList.remove('quote-loading');
+
+                if (data.ok) {
+                    // Citação Traduzida (PT)
+                    quoteText.textContent = `“${data.quote_pt}”`;
+                    
+                    // Citação Original (EN)
+                    quoteEn.textContent = `Original: “${data.quote_en}”`;
+                    
+                    // Autor
+                    quoteAuthor.textContent = `— ${data.author || "Desconhecido"}`;
+                } else {
+                    // Caso de falha na API ou tradução
+                    quoteText.textContent = 'Não foi possível obter a citação agora. Erro de conexão/API.';
+                    quoteEn.textContent = '';
+                    quoteAuthor.textContent = '';
+                }
+            })
+            .catch(error => {
+                console.error("Falha na requisição assíncrona:", error);
+                quoteText.textContent = 'Falha crítica ao carregar a citação.';
+                quoteText.classList.remove('quote-loading');
+                quoteEn.textContent = '';
+                quoteAuthor.textContent = '';
+            });
+    }
+
+    // Chama a função ao carregar o DOM
+    document.addEventListener('DOMContentLoaded', fetchQuote);
+</script>
+{% endblock scripts %}

@@ -1,27 +1,69 @@
-<!-- templates/base.html: layout base com navbar simples e bloco de conteúdo -->
+<!-- templates/base.html: layout base com navbar completa e tratamento de mensagens flash -->
 <!doctype html>
 <html lang="pt-br">
 <head>
   <meta charset="utf-8">
   <title>{% block title %}System Blog{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">    
+  <!-- Link para o seu arquivo CSS customizado -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <!-- Adiciona Bootstrap CSS para o Modal de Exclusão (usado em post.html) -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  
+  <!-- Bloco para scripts customizados, caso necessário -->
+  {% block head_scripts %}{% endblock %}
 </head>
 <body>
   <nav class="navbar">
+    <!-- Logo/Título -->
     <a href="{{ url_for('home') }}" class="brand">System Blog</a>
-    <div class="spacer"></div>
-    <!-- futuros links: login, registrar, perfil, admin -->
-    <a  href="{{ url_for('login') }}" class = "brand" >Login</a>
-    <a href="{{url_for('register')}}" class="nav-link ">Registrar</a>
+    
+    <!-- NOVO: Container para agrupar e empurrar todos os links para a direita -->
+    <div class="nav-links">
+      <a href="{{ url_for('home') }}" class="nav-link">Início</a>
+          
+      {% if current_user.is_authenticated %}
+          <!-- Links de Usuário Logado -->
+          <a href="{{ url_for('new_post') }}" class="nav-link">Novo Post</a>
+          
+          <!-- Link de Administração (Apenas para Administradores) -->
+          {% if current_user.role.can_admin %}
+            <a href="{{ url_for('admin_users') }}" class="nav-link nav-link-admin">Admin</a>
+          {% endif %}
+          
+          <a href="{{ url_for('account') }}" class="nav-link nav-link-profile">Perfil ({{ current_user.username }})</a>
+          <a href="{{ url_for('logout') }}" class="nav-link nav-link-danger">Sair</a>
+      {% else %}
+        <!-- Links de Usuário Não Logado -->
+        <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+        <a href="{{ url_for('register') }}" class="nav-link nav-link-register">Registrar</a>
+      {% endif %}
+    </div>
   </nav>
 
   <main class="container">
+    <!-- Exibição de Mensagens Flash (usando o sistema do Flask) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <!-- As classes 'alert-{{ category }}' devem ser estilizadas no CSS -->
+                <div class="alert alert-{{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Bloco de Conteúdo da Página Específica -->
     {% block content %}{% endblock %}
   </main>
 
   <footer class="footer">
     <small>&copy; {{ 2025 }} System Blog</small>
   </footer>
+  
+  <!-- Bloco para scripts JS no final do corpo (melhora a performance) -->
+  {% block scripts %}{% endblock %}
+
 </body>
 </html>

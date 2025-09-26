@@ -4,6 +4,7 @@
         <div class="content-section">
             <div class="media">
                 <!-- Imagem de Perfil -->
+                <!-- A classe 'profile-img' é definida no seu styles.css -->
                 <img class="profile-img" src="{{ image_file }}" alt="Imagem de Perfil do Usuário">
                 
                 <div class="media-body">
@@ -55,6 +56,8 @@
                     <div class="form-group">
                         {{ form.picture.label(class="form-control-label") }}
                         {{ form.picture(class="form-control-file") }}
+                        <!-- Adiciona uma pequena instrução sobre o arquivo -->
+                        <small class="form-text text-muted">Tamanho máximo 2MB. Apenas JPG, JPEG ou PNG.</small> 
                         {% if form.picture.errors %}
                             <div class="invalid-feedback d-block">
                                 {% for error in form.picture.errors %}
