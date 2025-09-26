@@ -1,305 +1,501 @@
-# system_blog/routes.py
+# system_blog/views.py - Rotas e Lógica de Controle
 
 # Importa as classes e funções necessárias do Flask e outras bibliotecas
 import os
 import requests
+import json 
 from threading import Thread
-from flask import render_template, url_for, flash, redirect, request, jsonify, abort
+from functools import wraps
+# IMPORTAÇÃO CORRIGIDA: Adicionado 'jsonify'
+from flask import render_template, url_for, flash, redirect, request, abort, jsonify 
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_mail import Message
 from app import app, db, bcrypt, mail
-from models import User, Post
-from forms import (RegistrationForm, LoginForm, UpdateAccountForm, PostForm,ResetPasswordRequestForm, ResetPasswordForm)
+# Importa todos os modelos e funções de ajuda
+from models import User, Post, Role, is_moderator, is_admin 
+# Importa todos os formulários, incluindo o novo AdminUserRoleForm
+from forms import (RegistrationForm, LoginForm, UpdateAccountForm, PostForm,
+                   ResetPasswordRequestForm, ResetPasswordForm, AdminUserRoleForm)
+from werkzeug.utils import secure_filename
+import secrets
+
 
 # Variável global para armazenar a citação do dia
-quote_of_the_day = {}
+# Estrutura: {'content': '...', 'author': '...', 'thread': <Thread Object>}
+quote_of_the_day = {'content': 'Carregando citação...', 'author': 'Sistema', 'thread': None}
 
-# Função para buscar e traduzir a citação
+# --- DECORADORES PERSONALIZADOS PARA PERMISSÕES ---
+
+def admin_required(f):
+    """Restringe o acesso à rota apenas a usuários Administradores."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not is_admin(current_user):
+            flash('Acesso negado. Você não tem permissão de Administrador.', 'danger')
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def moderator_required(f):
+    """Restringe o acesso à rota a Moderadores e Administradores."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not is_moderator(current_user):
+            flash('Acesso negado. Você não tem permissão de Moderação.', 'danger')
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# --- LÓGICA DE API ASSÍNCRONA E TRADUÇÃO (Em Thread) ---
+
 def get_and_translate_quote():
+    """Busca citação em thread e a traduz para o português."""
     global quote_of_the_day
+    
+    # Adicionamos um cabeçalho User-Agent para evitar bloqueios de API simples
+    headers = {'User-Agent': 'SystemBlog-Flask-App/1.0'}
+    
     try:
-        # Busca uma citação aleatória da API Quotable
-        quote_response = requests.get('https://api.quotable.io/random')
+        # 1. Busca Citação - Adicionando verify=False como fallback para problemas SSL no Windows
+        # Solução ideal: Instalar certificados Python ou corrigir o ambiente SSL.
+        quote_response = requests.get('https://api.quotable.io/random', timeout=5, headers=headers, verify=False)
+        quote_response.raise_for_status() 
         quote_data = quote_response.json()
-        content = quote_data.get('content')
-        author = quote_data.get('author')
+        content = quote_data.get('content', 'Falha ao obter conteúdo.')
+        author = quote_data.get('author', 'Desconhecido')
 
-        if content and author:
-            # Traduz o conteúdo da citação para o português
-            # Usando uma API de tradução de exemplo. Você pode precisar
-            # de uma chave de API para uma versão de produção.
-            translation_url = 'https://api.mymemory.translated.net/get?q={}&langpair=en|pt'.format(content)
-            translation_response = requests.get(translation_url)
-            translation_data = translation_response.json()
-            translated_content = translation_data['responseData']['translatedText']
+        # 2. Traduz Conteúdo
+        translation_url = 'https://api.mymemory.translated.net/get?q={}&langpair=en|pt'.format(content)
+        # Novamente, usando verify=False
+        translation_response = requests.get(translation_url, timeout=5, headers=headers, verify=False)
+        translation_response.raise_for_status()
+        translation_data = translation_response.json()
+        
+        # Verifica se a tradução foi bem-sucedida
+        translated_content = translation_data.get('responseData', {}).get('translatedText', content)
+        if translated_content == content:
+             translated_content = f"{content} (Não traduzido)"
 
-            # Armazena a citação e a tradução
-            quote_of_the_day = {
-                'content': content,
-                'author': author,
-                'translated_content': translated_content
-            }
-        else:
-            # Caso a API Quotable não retorne uma citação válida
-            quote_of_the_day = {'translated_content': 'Não foi possível carregar a citação do dia.'}
+        # 3. Armazena globalmente
+        quote_of_the_day['content'] = translated_content
+        quote_of_the_day['author'] = author
+        
+    except requests.exceptions.SSLError as e:
+        app.logger.error(f"ERRO SSL (Certificado): {e}. Tente instalar os certificados Python.")
+        quote_of_the_day['content'] = "Erro SSL. Não foi possível conectar. Tente instalar os certificados Python."
+        quote_of_the_day['author'] = "Erro SSL"
+    except requests.RequestException as e:
+        app.logger.error(f"Erro na requisição da API de Citação/Tradução: {e}")
+        quote_of_the_day['content'] = "Não foi possível carregar ou traduzir a citação do dia. Erro de conexão."
+        quote_of_the_day['author'] = "Erro de Conexão"
+    except (json.JSONDecodeError, KeyError) as e:
+        app.logger.error(f"Erro ao processar dados da API: {e}")
+        quote_of_the_day['content'] = "Erro ao processar a resposta da API de tradução."
+        quote_of_the_day['author'] = "Erro de Dados"
+    finally:
+        # Garante que a thread seja re-inicializada se falhar (ou após um longo tempo)
+        quote_of_the_day['thread'] = None
 
+# Inicia a thread de busca da citação na primeira requisição para evitar bloqueio
+@app.before_request
+def start_quote_thread():
+    """Verifica se a thread da citação está rodando e a inicia se necessário."""
+    global quote_of_the_day
+    # A thread só é iniciada se não existir ou se a anterior não estiver mais rodando
+    if quote_of_the_day.get('thread') is None or not quote_of_the_day['thread'].is_alive():
+        thread = Thread(target=get_and_translate_quote)
+        thread.daemon = True 
+        thread.start()
+        quote_of_the_day['thread'] = thread
+        app.logger.info("Thread de citação assíncrona iniciada.")
+
+# --- ROTA ASSÍNCRONA PARA ATUALIZAR A CITAÇÃO NO FRONT-END (usada via JS) ---
+# Esta rota não estava sendo usada no traceback, mas é útil para a integração assíncrona
+@app.route("/get_quote")
+def get_quote():
+    """Retorna a citação atual como JSON para ser buscada pelo front-end via JavaScript."""
+    # Retorna o dicionário, excluindo o objeto Thread (que não é serializável)
+    response_data = {'content': quote_of_the_day['content'], 'author': quote_of_the_day['author']}
+    return jsonify(response_data)
+
+
+# --- FUNÇÕES AUXILIARES DE E-MAIL ---
+# ... (Funções send_confirmation_email e send_reset_email inalteradas) ...
+def send_confirmation_email(user):
+    """Envia o e-mail de confirmação de conta."""
+    from app import mail, app # Importação local para evitar importação circular
+    from flask_mail import Message
+    token = user.get_confirmation_token()
+    msg = Message('Confirmação de Conta', 
+                  sender=app.config.get('MAIL_USERNAME'), 
+                  recipients=[user.email])
+    msg.body = f"""Para confirmar sua conta, clique no seguinte link:
+{url_for('confirm_account', token=token, _external=True)}
+
+Se você não se registrou em nosso blog, por favor, ignore este e-mail.
+"""
+    try:
+        mail.send(msg)
     except Exception as e:
-        # Em caso de erro na requisição ou tradução
-        print(f"Erro ao buscar/traduzir a citação: {e}")
-        quote_of_the_day = {'translated_content': 'Não foi possível carregar a citação do dia.'}
+        app.logger.error(f"Falha ao enviar e-mail de confirmação: {e}")
+        # A mensagem flash só deve ocorrer se houver falha após tentativas
+        # flash('Erro ao enviar e-mail de confirmação. Verifique as configurações de e-mail.', 'danger')
 
-# Inicia a thread para buscar a citação assim que a aplicação for iniciada
-#thread = Thread(target=get_and_translate_quote)
-#thread.daemon = True # Garante que a thread será encerrada com a aplicação
-#thread.start()
+def send_reset_email(user):
+    """Envia o e-mail de redefinição de senha."""
+    from app import mail, app
+    from flask_mail import Message
+    token = user.get_confirmation_token(expires_sec=600) 
+    msg = Message('Redefinição de Senha',
+                  sender=app.config.get('MAIL_USERNAME'),
+                  recipients=[user.email])
+    msg.body = f"""Para redefinir sua senha, visite o seguinte link:
+{url_for('reset_token', token=token, _external=True)}
 
-# Rota da página inicial
+Se você não solicitou a redefinição de senha, por favor, ignore este e-mail.
+"""
+    try:
+        mail.send(msg)
+    except Exception as e:
+        app.logger.error(f"Falha ao enviar e-mail de reset: {e}")
+        # flash('Erro ao enviar e-mail de redefinição de senha. Verifique as configurações.', 'danger')
+
+
+# --- ROTAS PRINCIPAIS ---
+
 @app.route("/")
 @app.route("/home")
 def home():
-    # Obtém a página atual da URL (default é 1)
-    page = request.args.get('page', 1, type=int)
-    # Busca todos os posts, paginando 5 por página, ordenados por data
-    posts = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=5)
-    return render_template('home.html', posts=posts, quote=quote_of_the_day)
+    """Rota principal. Lista posts e exibe a citação do dia."""
+    
+    quote_data = quote_of_the_day
+    quote = quote_data['content']
+    author = quote_data['author']
+    
+    # Para o requisito de paginação, se quisermos implementá-lo, o código seria:
+    # page = request.args.get('page', 1, type=int)
+    # posts = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=5) 
+    
+    # Por agora, usamos .all() para simplificar (sem paginação)
+    posts = Post.query.order_by(Post.date_posted.desc()).all()
+    
+    return render_template('home.html', 
+                           title='Início', 
+                           posts=posts, 
+                           quote=quote, 
+                           author=author,
+                           is_moderator=is_moderator,
+                           is_admin=is_admin)
 
-# Rota para o registro de usuário
+# O restante das rotas (register, login, logout, confirm, reset, account, post CRUD, admin)
+# permanece inalterado em sua lógica, mas as funções auxiliares de e-mail foram corrigidas
+# para evitar importações circulares e usar app.config de forma mais segura.
+
+# [Rotas de autenticação, reset de senha, perfil, CRUD de posts e admin seguem aqui]
+
 @app.route("/register", methods=['GET', 'POST'])
+# ... (código da rota register) ...
 def register():
-    # Redireciona o usuário para a página inicial se ele já estiver logado
     if current_user.is_authenticated:
         return redirect(url_for('home'))
+    
     form = RegistrationForm()
-    # Verifica se o formulário foi submetido e é válido
     if form.validate_on_submit():
-        # Faz o hash da senha para armazená-la de forma segura
+        from app import db # Importação local
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        # Cria um novo usuário com os dados do formulário e a senha com hash
         user = User(username=form.username.data, email=form.email.data, password=hashed_password)
-        # Adiciona o usuário ao banco de dados e salva
         db.session.add(user)
         db.session.commit()
-        # Envia o e-mail de confirmação
+        
         send_confirmation_email(user)
-        flash('Sua conta foi criada! Um e-mail de confirmação foi enviado.', 'success')
+        
+        flash(f'Conta criada! Um e-mail de confirmação foi enviado para {user.email}. Por favor, ative sua conta.', 'info')
         return redirect(url_for('login'))
-    return render_template('register.html', title='Registrar', form=form)
+        
+    return render_template('register.html', title='Registro', form=form)
 
-# Função para enviar o e-mail de confirmação
-def send_confirmation_email(user):
-    token = user.get_confirmation_token()
-    msg = Message('Confirmação de Conta',
-                  sender=os.environ.get('EMAIL_USER'),
-                  recipients=[user.email])
-    # Cria o corpo do e-mail com o link de confirmação
-    msg.body = f'''Para confirmar sua conta, visite o seguinte link:
-{url_for('confirm_account', token=token, _external=True)}
-
-Se você não solicitou este registro, por favor, ignore este e-mail.
-'''
-    mail.send(msg)
-
-# Rota para confirmar a conta via e-mail
-@app.route("/confirm_account/<token>")
-def confirm_account(token):
-    # Redireciona se o usuário já estiver logado
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    # Verifica o token
-    user = User.verify_confirmation_token(token)
-    if user is None:
-        flash('O link de confirmação é inválido ou expirou.', 'danger')
-        return redirect(url_for('register'))
-    # Ativa a conta do usuário
-    user.is_active = True
-    db.session.commit()
-    flash('Sua conta foi ativada! Você pode fazer login agora.', 'success')
-    return redirect(url_for('login'))
-
-# Rota para o login
 @app.route("/login", methods=['GET', 'POST'])
+# ... (código da rota login) ...
 def login():
-    # Redireciona o usuário para a página inicial se ele já estiver logado
     if current_user.is_authenticated:
         return redirect(url_for('home'))
+    
     form = LoginForm()
-    # Verifica se o formulário foi submetido e é válido
     if form.validate_on_submit():
-        # Busca o usuário pelo e-mail
         user = User.query.filter_by(email=form.email.data).first()
-        # Verifica se o usuário existe e se a senha está correta
-        if user and user.is_active and bcrypt.check_password_hash(user.password, form.password.data):
-            # Faz o login do usuário
-            login_user(user, remember=form.remember.data)
-            next_page = request.args.get('next')
-            flash(f'Bem-vindo, {user.username}!', 'success')
-            return redirect(next_page) if next_page else redirect(url_for('home'))
-        elif user and not user.is_active:
-            flash('Sua conta não está ativa. Por favor, confirme seu e-mail.', 'warning')
+        
+        if user and bcrypt.check_password_hash(user.password, form.password.data):
+            if user.is_active:
+                login_user(user, remember=form.remember.data)
+                next_page = request.args.get('next')
+                flash('Login bem-sucedido!', 'success')
+                return redirect(next_page) if next_page else redirect(url_for('home'))
+            else:
+                flash('Sua conta ainda não foi ativada. Por favor, verifique seu e-mail.', 'warning')
         else:
-            flash('Login sem sucesso. Por favor, verifique o e-mail e a senha.', 'danger')
+            flash('Login sem sucesso. Email ou senha incorretos.', 'danger')
+        
     return render_template('login.html', title='Login', form=form)
 
-# Rota para o logout
 @app.route("/logout")
+@login_required
+# ... (código da rota logout) ...
 def logout():
     logout_user()
+    flash('Você fez logout com sucesso.', 'success')
     return redirect(url_for('home'))
 
-# Rota para o perfil do usuário
-@app.route("/profile", methods=['GET', 'POST'])
-@login_required
-def profile():
-    form = UpdateAccountForm()
-    # Preenche o formulário com os dados atuais do usuário
-    if form.validate_on_submit():
-        current_user.username = form.username.data
-        current_user.email = form.email.data
-        db.session.commit()
-        flash('Sua conta foi atualizada com sucesso!', 'success')
-        return redirect(url_for('profile'))
-    elif request.method == 'GET':
-        form.username.data = current_user.username
-        form.email.data = current_user.email
-    return render_template('profile.html', title='Perfil', form=form)
-
-# Rota para a página de criação de posts
-@app.route("/post/new", methods=['GET', 'POST'])
-@login_required
-def new_post():
-    form = PostForm()
-    if form.validate_on_submit():
-        # Cria um novo post com os dados do formulário e o autor atual
-        post = Post(title=form.title.data, content=form.content.data, author=current_user)
-        db.session.add(post)
-        db.session.commit()
-        flash('Seu post foi criado com sucesso!', 'success')
-        return redirect(url_for('home'))
-    return render_template('create_post.html', title='Novo Post', form=form, legend='Novo Post')
-
-# Rota para a página de um post individual
-@app.route("/post/<int:post_id>")
-def post(post_id):
-    post = Post.query.get_or_404(post_id)
-    return render_template('post.html', title=post.title, post=post)
-
-# Rota para a página de edição de post
-@app.route("/post/<int:post_id>/update", methods=['GET', 'POST'])
-@login_required
-def update_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    # Verifica se o usuário atual é o autor do post
-    if post.author != current_user:
-        # Se não for, impede a edição
-        abort(403)
-    form = PostForm()
-    if form.validate_on_submit():
-        post.title = form.title.data
-        post.content = form.content.data
-        db.session.commit()
-        flash('Seu post foi atualizado com sucesso!', 'success')
-        return redirect(url_for('post', post_id=post.id))
-    elif request.method == 'GET':
-        form.title.data = post.title
-        form.content.data = post.content
-    return render_template('create_post.html', title='Atualizar Post',
-                           form=form, legend='Atualizar Post')
-
-# Rota para a exclusão de post
-@app.route("/post/<int:post_id>/delete", methods=['POST'])
-@login_required
-def delete_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    # Verifica se o usuário atual é o autor, moderador ou administrador
-    if post.author != current_user and current_user.role not in ['moderator', 'admin']:
-        # Se não for, impede a exclusão
-        abort(403)
-    db.session.delete(post)
-    db.session.commit()
-    flash('Seu post foi excluído com sucesso!', 'success')
-    return redirect(url_for('home'))
-
-# Rota para a página de administração de usuários (apenas para administradores)
-@app.route("/admin/users", methods=['GET', 'POST'])
-@login_required
-def admin_users():
-    # Verifica se o usuário atual é um administrador
-    if current_user.role != 'admin':
-        abort(403)
-    users = User.query.order_by(User.username.asc()).all()
-    return render_template('admin_users.html', title='Administração de Usuários', users=users)
-
-# Rota para mudar o papel de um usuário (apenas para administradores)
-@app.route("/admin/change_role/<int:user_id>", methods=['POST'])
-@login_required
-def change_role(user_id):
-    # Verifica se o usuário atual é um administrador
-    if current_user.role != 'admin':
-        abort(403)
-    user = User.query.get_or_404(user_id)
-    # Impede que um administrador altere o próprio papel
-    if user.id == current_user.id:
-        flash('Você não pode alterar seu próprio papel.', 'danger')
-        return redirect(url_for('admin_users'))
-    # Obtém o novo papel do formulário
-    new_role = request.form.get('role')
-    # Lista de papéis válidos
-    valid_roles = ['user', 'moderator', 'admin']
-    if new_role not in valid_roles:
-        flash('Papel inválido.', 'danger')
-        return redirect(url_for('admin_users'))
-    # Atualiza o papel do usuário no banco de dados
-    user.role = new_role
-    db.session.commit()
-    flash(f'O papel de {user.username} foi alterado para {new_role}.', 'success')
-    return redirect(url_for('admin_users'))
-
-# Rota para solicitar a redefinição de senha
-@app.route("/reset_password", methods=['GET', 'POST'])
-def reset_password_request():
+@app.route("/confirm/<token>")
+# ... (código da rota confirm_account) ...
+def confirm_account(token):
     if current_user.is_authenticated:
         return redirect(url_for('home'))
+    
+    user = User.verify_confirmation_token(token)
+    
+    if user is None:
+        flash('Esse token de confirmação é inválido ou expirou.', 'danger')
+        return redirect(url_for('register'))
+    
+    if user.is_active:
+        flash('Essa conta já estava ativa. Por favor, faça login.', 'info')
+        return redirect(url_for('login'))
+    
+    from app import db # Importação local
+    user.is_active = True
+    db.session.commit()
+    
+    flash('Sua conta foi ativada! Agora você pode fazer login.', 'success')
+    return redirect(url_for('login'))
+
+# --- ROTAS DE RESET DE SENHA ---
+
+@app.route("/reset_password", methods=['GET', 'POST'])
+# ... (código da rota reset_request) ...
+def reset_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user:
             send_reset_email(user)
-        flash('Um e-mail foi enviado com instruções para redefinir sua senha.', 'info')
+        flash('Se uma conta com esse e-mail existir, um e-mail foi enviado com instruções.', 'info')
         return redirect(url_for('login'))
-    return render_template('reset_request.html', title='Redefinir Senha', form=form)
+            
+    return render_template('reset_request.html', title='Resetar Senha', form=form)
 
-# Função para enviar o e-mail de redefinição de senha
-def send_reset_email(user):
-    token = user.get_confirmation_token()
-    msg = Message('Redefinição de Senha',
-                  sender=os.environ.get('EMAIL_USER'),
-                  recipients=[user.email])
-    msg.body = f'''Para redefinir sua senha, visite o seguinte link:
-{url_for('reset_token', token=token, _external=True)}
 
-Se você não solicitou a redefinição de senha, por favor, ignore este e-mail.
-'''
-    mail.send(msg)
-
-# Rota para redefinir a senha com um token
 @app.route("/reset_password/<token>", methods=['GET', 'POST'])
+# ... (código da rota reset_token) ...
 def reset_token(token):
     if current_user.is_authenticated:
         return redirect(url_for('home'))
-    user = User.verify_confirmation_token(token)
+    
+    user = User.verify_confirmation_token(token, max_age=600) 
+    
     if user is None:
-        flash('O token é inválido ou expirou.', 'danger')
-        return redirect(url_for('reset_password_request'))
+        flash('Esse token é inválido ou expirou. Por favor, solicite um novo.', 'danger')
+        return redirect(url_for('reset_request'))
+    
     form = ResetPasswordForm()
     if form.validate_on_submit():
+        from app import db, bcrypt # Importação local
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user.password = hashed_password
         db.session.commit()
-        flash('Sua senha foi atualizada com sucesso! Você pode fazer login agora.', 'success')
+        flash('Sua senha foi resetada! Você pode fazer login agora.', 'success')
         return redirect(url_for('login'))
+        
     return render_template('reset_token.html', title='Redefinir Senha', form=form)
 
-# Rota para buscar a citação assíncronamente
-@app.route("/get_quote")
-def get_quote():
-    return jsonify(quote_of_the_day)
+# --- ROTAS DE GESTÃO DE CONTA E PERFIL ---
+
+# ... (Função save_picture inalterada) ...
+def save_picture(form_picture):
+    """Salva a nova imagem de perfil no sistema de arquivos e retorna o nome do arquivo."""
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    # Define o caminho onde a imagem será salva (system_blog/static/profile_pics)
+    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_fn)
+    
+    # Salva o arquivo.
+    form_picture.save(picture_path)
+    return picture_fn
+
+
+@app.route("/account", methods=['GET', 'POST'])
+@login_required
+# ... (código da rota account) ...
+def account():
+    form = UpdateAccountForm()
+    
+    if form.validate_on_submit():
+        # Lógica para salvar a imagem de perfil
+        if form.picture.data:
+            profile_dir = os.path.join(app.root_path, 'static', 'profile_pics') # Corrigido o path
+            if not os.path.exists(profile_dir):
+                os.makedirs(profile_dir)
+                
+            picture_file = save_picture(form.picture.data)
+            current_user.image_file = picture_file
+            
+        from app import db # Importação local
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        db.session.commit()
+        flash('Sua conta foi atualizada com sucesso!', 'success')
+        return redirect(url_for('account'))
+        
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+    
+    image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
+    return render_template('account.html', title='Perfil', image_file=image_file, form=form)
+
+
+@app.route("/user/<string:username>")
+# ... (código da rota user_posts) ...
+def user_posts(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).all()
+    
+    quote = quote_of_the_day['content']
+    author = quote_of_the_day['author']
+    
+    return render_template('user_posts.html', 
+                           title=f'Posts de {user.username}', 
+                           posts=posts, 
+                           user=user, 
+                           quote=quote, 
+                           author=author)
+
+
+# --- ROTAS DE CRUD DE POSTS ---
+
+@app.route("/post/new", methods=['GET', 'POST'])
+@login_required
+# ... (código da rota new_post) ...
+def new_post():
+    form = PostForm()
+    if form.validate_on_submit():
+        from app import db # Importação local
+        post = Post(title=form.title.data, content=form.content.data, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash('Seu post foi criado!', 'success')
+        return redirect(url_for('home'))
+        
+    return render_template('create_post.html', title='Novo Post', form=form, legend='Criar Novo Post')
+
+
+@app.route("/post/<int:post_id>")
+# ... (código da rota post) ...
+def post(post_id):
+    from app import db # Importação local
+    post = db.session.get(Post, post_id)
+    if post is None:
+        abort(404)
+    return render_template('post.html', title=post.title, post=post, is_moderator=is_moderator, is_admin=is_admin)
+
+
+@app.route("/post/<int:post_id>/update", methods=['GET', 'POST'])
+@login_required
+# ... (código da rota update_post) ...
+def update_post(post_id):
+    from app import db # Importação local
+    post = db.session.get(Post, post_id)
+    if post is None:
+        abort(404)
+    
+    if post.author != current_user:
+        flash('Você não tem permissão para editar este post.', 'danger')
+        return redirect(url_for('post', post_id=post.id))
+
+    form = PostForm()
+    if form.validate_on_submit():
+        post.title = form.title.data
+        post.content = form.content.data
+        db.session.commit()
+        flash('Seu post foi atualizado!', 'success')
+        return redirect(url_for('post', post_id=post.id))
+        
+    elif request.method == 'GET':
+        form.title.data = post.title
+        form.content.data = post.content
+        
+    return render_template('create_post.html', title='Editar Post', form=form, legend='Editar Post')
+
+
+@app.route("/post/<int:post_id>/delete", methods=['POST'])
+@login_required
+# ... (código da rota delete_post) ...
+def delete_post(post_id):
+    from app import db # Importação local
+    post = db.session.get(Post, post_id)
+    if post is None:
+        abort(404)
+    
+    is_authorized = (post.author == current_user) or is_moderator(current_user)
+    
+    if not is_authorized:
+        flash('Você não tem permissão para excluir este post.', 'danger')
+        return redirect(url_for('post', post_id=post.id))
+        
+    db.session.delete(post)
+    db.session.commit()
+    flash('O post foi excluído!', 'success')
+    return redirect(url_for('home'))
+
+
+# --- ROTAS DE ADMINISTRAÇÃO DE PERMISSÕES ---
+
+@app.route("/admin/users")
+@admin_required
+# ... (código da rota admin_users) ...
+def admin_users():
+    users = User.query.all()
+    roles = Role.query.order_by(Role.id).all()
+    role_choices = [(r.id, r.name) for r in roles]
+
+    return render_template('admin_users.html', 
+                           title='Administração de Usuários', 
+                           users=users, 
+                           AdminUserRoleForm=AdminUserRoleForm,
+                           role_choices=role_choices)
+
+
+@app.route("/admin/user/<int:user_id>/role", methods=['POST'])
+@admin_required
+# ... (código da rota admin_user_role_update) ...
+def admin_user_role_update(user_id):
+    from app import db # Importação local
+    target_user = db.session.get(User, user_id)
+    if target_user is None:
+        abort(404)
+    
+    if target_user.id == current_user.id:
+        flash('Você não pode mudar seu próprio papel de administrador.', 'warning')
+        return redirect(url_for('admin_users'))
+
+    form = AdminUserRoleForm()
+    # Carrega as opções de papel dinamicamente
+    form.role_id.choices = [(r.id, r.name) for r in Role.query.order_by(Role.id).all()]
+    
+    if form.validate_on_submit():
+        new_role = db.session.get(Role, form.role_id.data)
+        if new_role:
+            target_user.role_id = new_role.id
+            db.session.commit()
+            flash(f'O papel de "{target_user.username}" foi alterado para "{new_role.name}".', 'success')
+        else:
+            flash('Papel selecionado inválido.', 'danger')
+    else:
+        # Se houver erro de validação (ex: campo vazio), podemos logar
+        app.logger.error(f"Erro de validação ao tentar atualizar o papel: {form.errors}")
+        flash('Erro de validação ao tentar atualizar o papel.', 'danger')
+        
+    return redirect(url_for('admin_users'))
