@@ -1,11 +1,10 @@
 # system_blog/forms.py
 
-# Importa as classes e funções necessárias do Flask-WTF e outras bibliotecas
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, SelectField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
-from models import User
+from models import User, Role
 from flask_login import current_user
 
 # Formulário de Registro de Usuário
@@ -49,8 +48,6 @@ class UpdateAccountForm(FlaskForm):
             if user:
                 raise ValidationError('Esse nome de usuário já existe. Por favor, escolha outro.')
 
-    # Validador personalizado para verificar se o e-mail já existe
-    # Evita que o usuário altere para um e-mail que já existe
     def validate_email(self, email):
         if email.data != current_user.email:
             user = User.query.filter_by(email=email.data).first()
@@ -80,3 +77,9 @@ class ResetPasswordForm(FlaskForm):
     password = PasswordField('Nova Senha', validators=[DataRequired(), Length(min=6, max=60)])
     confirm_password = PasswordField('Confirme a Nova Senha',validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Redefinir Senha')
+
+# Formulário de Administração de Papéis 
+class AdminUserRoleForm(FlaskForm):
+    """Formulário para administradores mudarem o papel (Role) de outro usuário."""
+    role_id = SelectField('Papel do Usuário', coerce=int, validators=[DataRequired()])
+    submit = SubmitField('Atualizar Papel')
