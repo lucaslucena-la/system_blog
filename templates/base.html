@@ -12,8 +12,8 @@
     <a href="{{ url_for('home') }}" class="brand">System Blog</a>
     <div class="spacer"></div>
     <!-- futuros links: login, registrar, perfil, admin -->
-    <a href="#" class="nav-link disabled">Login</a>
-    <a href="#" class="nav-link disabled">Registrar</a>
+    <a  href="{{ url_for('login') }}" class = "brand" >Login</a>
+    <a href="{{url_for('register')}}" class="nav-link ">Registrar</a>
   </nav>
 
   <main class="container">

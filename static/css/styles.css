@@ -1,18 +1,337 @@
-/* Estilos mínimos para dar estrutura; sinta-se à vontade para personalizar */
-:root { --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#9ca3af; --brand:#60a5fa; }
-* { box-sizing: border-box; }
-body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background: var(--bg); color: var(--text); }
-.navbar { display:flex; align-items:center; gap:16px; padding:12px 20px; background: rgba(0,0,0,.35); position: sticky; top:0; backdrop-filter: blur(6px); }
-.brand { color: var(--brand); text-decoration: none; font-weight: 700; }
-.nav-link { color: var(--text); text-decoration: none; opacity: .6; }
-.nav-link.disabled { pointer-events: none; }
-.container { max-width: 920px; margin: 24px auto; padding: 0 16px; }
-.footer { border-top: 1px solid #1f2937; padding: 16px 20px; text-align:center; opacity:.7; }
+/* ------------------------------------------------------------------------- */
+/* CONFIGURAÇÃO GERAL E TIPOGRAFIA */
+/* ------------------------------------------------------------------------- */
+/* Fonte base para todo o projeto */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
-.post-list { list-style: none; padding: 0; display: grid; gap: 16px; }
-.post-card { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid #1f2937; }
-.meta { color: var(--muted); font-size: 0.9rem; margin-top: -6px; }
+body {
+    background: #f4f7f6; /* Fundo cinza claro */
+    color: #333; /* Texto escuro */
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
 
-.quote-box { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid #1f2937; }
-.quote-en { color: var(--muted); font-size: .95rem; margin-top: 8px; }
-.quote-author { color: var(--muted); margin-top: 4px; }
+/* ------------------------------------------------------------------------- */
+/* LAYOUT E CONTAINERS */
+/* ------------------------------------------------------------------------- */
+
+/* Container principal para o conteúdo, centraliza e limita a largura */
+main.container {
+    max-width: 900px; /* Largura máxima para conteúdo de blog */
+    width: 95%; /* Responsividade em telas menores */
+    margin: 20px auto;
+    padding: 0 10px;
+    flex-grow: 1; /* Permite que o conteúdo ocupe o espaço restante */
+}
+
+/* Container menor, ideal para formulários (login, registro) */
+.container-small {
+    max-width: 450px;
+    width: 95%;
+    margin: 20px auto;
+}
+
+/* Seção de conteúdo (caixa de fundo branco para formulários/posts) */
+.content-section {
+    background: #fff;
+    padding: 20px 30px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* ------------------------------------------------------------------------- */
+/* BARRA DE NAVEGAÇÃO (NAVBAR) */
+/* ------------------------------------------------------------------------- */
+
+.navbar {
+    background: #2c3e50; /* Azul escuro */
+    color: #ecf0f1;
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.brand {
+    color: #ecf0f1;
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.brand:hover {
+    color: #3498db; /* Azul claro ao passar o mouse */
+    text-decoration: none;
+}
+
+.spacer {
+    flex-grow: 1; /* Empurra os links para a direita */
+}
+
+.navbar-nav {
+    display: flex;
+    align-items: center;
+}
+
+.nav-link {
+    color: #ecf0f1;
+    text-decoration: none;
+    margin-left: 15px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #34495e; /* Fundo levemente mais escuro ao passar o mouse */
+    color: #fff;
+    text-decoration: none;
+}
+
+/* ------------------------------------------------------------------------- */
+/* FORMULÁRIOS E INPUTS */
+/* ------------------------------------------------------------------------- */
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Inclui padding e border na largura total */
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+.is-invalid {
+    border-color: #e74c3c !important; /* Vermelho */
+}
+
+.invalid-feedback {
+    color: #e74c3c;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.textarea {
+    resize: vertical;
+}
+
+/* ------------------------------------------------------------------------- */
+/* BOTÕES (BOOTSTRAP ADAPTADO) */
+/* ------------------------------------------------------------------------- */
+
+.btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s, background-color 0.2s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-warning {
+    background-color: #f39c12;
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #e67e22;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+}
+
+/* ------------------------------------------------------------------------- */
+/* RODAPÉ (FOOTER) */
+/* ------------------------------------------------------------------------- */
+
+.footer {
+    background: #34495e;
+    color: #bdc3c7;
+    padding: 15px 0;
+    text-align: center;
+    margin-top: auto; /* Garante que ocupe o fundo da página */
+}
+
+/* ------------------------------------------------------------------------- */
+/* ESTILOS DE POSTS E PERFIL */
+/* ------------------------------------------------------------------------- */
+
+.post-article {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.post-article h2 a {
+    color: #2c3e50;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.post-article h2 a:hover {
+    color: #3498db;
+}
+
+.post-meta {
+    font-size: 0.9em;
+    color: #7f8c8d;
+    margin-bottom: 10px;
+}
+
+.article-content {
+    line-height: 1.6;
+}
+
+.article-img {
+    height: 120px;
+    width: 120px;
+    margin-right: 15px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #3498db;
+}
+
+/* Estilo para a citação do dia */
+.quote-of-the-day {
+    background: #ecf0f1;
+    border-left: 5px solid #3498db;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.quote-text {
+    font-style: italic;
+    margin-bottom: 5px;
+}
+
+.quote-author {
+    display: block;
+    text-align: right;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9em;
+}
+
+/* ------------------------------------------------------------------------- */
+/* PAGINAÇÃO */
+/* ------------------------------------------------------------------------- */
+
+.pagination-links {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.pagination-links a, .pagination-links span {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 0 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+    transition: background-color 0.2s;
+}
+
+.pagination-links a:hover {
+    background-color: #ddd;
+}
+
+.pagination-links span.active {
+    background-color: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+/* ------------------------------------------------------------------------- */
+/* RESPONSIVIDADE (MOBILE) */
+/* ------------------------------------------------------------------------- */
+
+@media (max-width: 600px) {
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px;
+    }
+
+    .navbar .brand {
+        margin-bottom: 10px;
+    }
+
+    .navbar .spacer {
+        display: none;
+    }
+
+    .navbar-nav {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .nav-link, .btn {
+        margin-left: 0;
+        margin-top: 5px;
+        text-align: center;
+    }
+}

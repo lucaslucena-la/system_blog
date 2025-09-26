@@ -18,6 +18,9 @@ app.config['MAIL_USE_TLS'] = True
 # Lembre-se de definir as variáveis de ambiente EMAIL_USER e EMAIL_PASS no seu terminal!
 app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER') 
 app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'no-reply@local.test')
+
+
 
 # --- Inicialização das Extensões ---
 db = SQLAlchemy(app)

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="container-small">
+        <div class="content-section">
+            <div class="media">
+                <!-- Imagem de Perfil -->
+                <img class="profile-img" src="{{ image_file }}" alt="Imagem de Perfil do Usuário">
+                
+                <div class="media-body">
+                    <h2 class="account-heading">{{ current_user.username }}</h2>
+                    <p class="account-info">Email: <strong>{{ current_user.email }}</strong></p>
+                    <!-- Acesso ao nome do papel via a relação 'role' no modelo User -->
+                    <p class="account-info">Papel: <strong>{{ current_user.role.name }}</strong></p> 
+                    <p class="account-info">Ativo: <strong>{{ "Sim" if current_user.is_active else "Não (Aguardando Confirmação)" }}</strong></p>
+                </div>
+            </div>
+            
+            <h3 class="mt-4 border-bottom pb-2">Atualizar Informações da Conta</h3>
+            <!-- O formulário precisa do atributo enctype para lidar com upload de arquivos -->
+            <form method="POST" action="" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                <fieldset class="form-group">
+                    
+                    <!-- Nome de Usuário -->
+                    <div class="form-group">
+                        {{ form.username.label(class="form-control-label") }}
+                        {% if form.username.errors %}
+                            {{ form.username(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.username.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.username(class="form-control") }}
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        {{ form.email.label(class="form-control-label") }}
+                        {% if form.email.errors %}
+                            {{ form.email(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.email.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.email(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Imagem de Perfil -->
+                    <div class="form-group">
+                        {{ form.picture.label(class="form-control-label") }}
+                        {{ form.picture(class="form-control-file") }}
+                        {% if form.picture.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.picture.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </fieldset>
+                <div class="form-group">
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock content %}

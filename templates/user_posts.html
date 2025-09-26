@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="container">
+        <!-- Título para Posts do Usuário -->
+        <h2 class="mb-4 border-bottom pb-2">Posts de: <span style="color: {{ 'var(--primary-color)' }};">{{ user.username }}</span></h2>
+        
+        <!-- Lista de Posts -->
+        {% for post in posts %}
+            <article class="content-section post-card">
+                <div class="media">
+                    <img class="rounded-circle article-img" src="{{ url_for('static', filename='profile_pics/' + post.author.image_file) }}" alt="Imagem de Perfil">
+                    <div class="media-body">
+                        <div class="article-metadata">
+                            <small class="text-muted">{{ post.date_posted.strftime('%d/%m/%Y') }}</small>
+                        </div>
+                        <h2><a class="article-title" href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a></h2>
+                        <p class="article-content-preview">{{ post.content[:200] }}...</p>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+
+        <!-- Seção de Citação (Repetida em home.html, mas útil aqui) -->
+        <div class="quote-box">
+            <p class="quote-text">"{{ quote }}"</p>
+            <span class="quote-author">— {{ author }}</span>
+        </div>
+    </div>
+{% endblock content %}
