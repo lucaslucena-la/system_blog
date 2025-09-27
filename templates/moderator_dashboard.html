@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Moderação{% endblock %}
+{% block content %}
+  <h2>Painel de Moderação</h2>
+  <p>Olá, {{ current_user.username }}. Aqui você pode revisar e excluir qualquer post.</p>
+
+  <hr>
+  {% if posts %}
+    <ul>
+      {% for post in posts %}
+        <li>
+          <a href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a>
+          <small>— por {{ post.author.username }} em {{ post.date_posted.strftime("%d/%m/%Y %H:%M") }}</small>
+
+          {% if current_user.is_authenticated and (is_moderator(current_user) or is_admin(current_user)) %}
+            <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display:inline;">
+              <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Sem posts no momento.</p>
+  {% endif %}
+{% endblock %}

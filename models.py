@@ -73,10 +73,9 @@ class Post(db.Model):
 
 # --- Funções Auxiliares de Permissão ---
 # Acessam o objeto Role criado pelo backref
-def is_moderator(user):
-    """Verifica se o usuário tem permissão de moderação (inclui admins)."""
-    return user.is_authenticated and user.role.can_moderate if hasattr(user, 'role') else False
-
 def is_admin(user):
-    """Verifica se o usuário tem permissão de administração."""
-    return user.is_authenticated and user.role.can_admin if hasattr(user, 'role') else False
+    return bool(user.is_authenticated and getattr(user.role, "can_admin", False))
+
+def is_moderator(user):
+    return bool(user.is_authenticated and getattr(user.role, "can_moderate", False))
+

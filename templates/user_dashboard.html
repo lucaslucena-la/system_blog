@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Meu Painel{% endblock %}
+{% block content %}
+  <h2>Meu Painel</h2>
+  <p>Bem-vindo(a), {{ current_user.username }}!</p>
+  <p><a class="btn btn-primary" href="{{ url_for('new_post') }}">Criar novo post</a></p>
+
+  <hr>
+  <h4>Meus posts</h4>
+  {% if posts %}
+    <ul>
+      {% for post in posts %}
+        <li>
+          <a href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a>
+          <small>— {{ post.date_posted.strftime("%d/%m/%Y %H:%M") }}</small>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Você ainda não tem posts.</p>
+  {% endif %}
+{% endblock %}

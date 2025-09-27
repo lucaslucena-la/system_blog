@@ -23,21 +23,23 @@
       <a href="{{ url_for('home') }}" class="nav-link">Início</a>
           
       {% if current_user.is_authenticated %}
-          <!-- Links de Usuário Logado -->
-          <a href="{{ url_for('new_post') }}" class="nav-link">Novo Post</a>
-          
-          <!-- Link de Administração (Apenas para Administradores) -->
-          {% if current_user.role.can_admin %}
-            <a href="{{ url_for('admin_users') }}" class="nav-link nav-link-admin">Admin</a>
-          {% endif %}
-          
-          <a href="{{ url_for('account') }}" class="nav-link nav-link-profile">Perfil ({{ current_user.username }})</a>
-          <a href="{{ url_for('logout') }}" class="nav-link nav-link-danger">Sair</a>
+        <a href="{{ url_for('new_post') }}" class="nav-link">Novo Post</a>
+
+        {% if is_admin(current_user) %}
+          <a href="{{ url_for('admin_users') }}" class="nav-link nav-link-admin">Admin</a>
+        {% elif is_moderator(current_user) %}
+          <a href="{{ url_for('moderator_dashboard') }}" class="nav-link">Moderação</a>
+        {% else %}
+          <a href="{{ url_for('user_dashboard') }}" class="nav-link">Meu Painel</a>
+        {% endif %}
+
+        <a href="{{ url_for('account') }}" class="nav-link nav-link-profile">Perfil ({{ current_user.username }})</a>
+        <a href="{{ url_for('logout') }}" class="nav-link nav-link-danger">Sair</a>
       {% else %}
-        <!-- Links de Usuário Não Logado -->
         <a href="{{ url_for('login') }}" class="nav-link">Login</a>
         <a href="{{ url_for('register') }}" class="nav-link nav-link-register">Registrar</a>
       {% endif %}
+
     </div>
   </nav>
 

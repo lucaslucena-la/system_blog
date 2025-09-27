@@ -48,6 +48,13 @@ def load_user(user_id):
 # Importa as views DEPOIS de inicializar app, db, etc.
 import views 
 
+from models import is_admin, is_moderator
+
+@app.context_processor
+def inject_permissions():
+    """Disponibiliza helpers de permissão em todos os templates Jinja2."""
+    return dict(is_admin=is_admin, is_moderator=is_moderator)
+
 
 if __name__ == '__main__':
     with app.app_context():
