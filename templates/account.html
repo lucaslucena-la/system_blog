@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+{% endblock %}
+
+
     <div class="container-small">
         <div class="content-section">
             <div class="media">

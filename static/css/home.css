@@ -1,0 +1,13 @@
+/* QUOTE OF THE DAY - Home */
+.quote-of-the-day {
+    background: #f7fafc;
+    border-left: 6px solid var(--primary-color);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    transition: var(--transition);
+}
+.quote-text   { font-style: italic; font-size: 1.1rem; color: var(--text-color); line-height: 1.5; margin-bottom: 10px; }
+.quote-author { display: block; text-align: right; font-weight: 600; color: var(--primary-color); font-size: 0.95rem; }
+.quote-en     { font-size: 0.85rem; color: #718096; margin-top: 10px; }
+.quote-loading{ color: #718096; font-style: italic; }

@@ -6,12 +6,15 @@
   <title>{% block title %}System Blog{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">    
   <!-- Link para o seu arquivo CSS customizado -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
   <!-- Adiciona Bootstrap CSS para o Modal de Exclusão (usado em post.html) -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  
+
   <!-- Bloco para scripts customizados, caso necessário -->
   {% block head_scripts %}{% endblock %}
+
+  {% block extra_css %}{% endblock %}
+
 </head>
 <body>
   <nav class="navbar">

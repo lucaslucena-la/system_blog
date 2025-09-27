@@ -1,0 +1,16 @@
+/* PERFIL / ACCOUNT */
+.media { display: flex; align-items: center; margin-bottom: 25px; }
+.media-body { flex: 1; padding-left: 20px; }
+
+.profile-img {
+    height: 120px; width: 120px; object-fit: cover; border-radius: 50%;
+    border: 4px solid var(--primary-color);
+}
+.account-heading { margin-bottom: 8px; font-size: 1.8rem; color: var(--text-color); }
+.account-info { margin: 5px 0; font-size: 1rem; color: #718096; }
+
+/* Responsivo específico do perfil */
+@media (max-width: 768px) {
+    .media { flex-direction: column; text-align: center; }
+    .media-body { padding-left: 0; margin-top: 20px; }
+}
