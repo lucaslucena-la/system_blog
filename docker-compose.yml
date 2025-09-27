@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    container_name: system_blog
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=dev-secret-change-me
+      - EMAIL_USER=lucaslucena.dev123@gmail.com
+      - EMAIL_PASS=qfaihhhqhaamkdpr
+      - MAIL_DEFAULT_SENDER=lucaslucena.dev123@gmail.com
+    volumes:
+      - .:/app
+      - ./site.db:/app/site.db   # mantém o banco fora do container
+

@@ -17,3 +17,5 @@ requests
 
 # Variáveis de ambiente
 python-dotenv
+
+flask_bcrypt

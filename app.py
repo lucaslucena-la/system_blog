@@ -54,7 +54,7 @@ from models import is_admin, is_moderator
 def inject_permissions():
     """Disponibiliza helpers de permissão em todos os templates Jinja2."""
     return dict(is_admin=is_admin, is_moderator=is_moderator)
-
+ 
 
 if __name__ == '__main__':
     with app.app_context():
