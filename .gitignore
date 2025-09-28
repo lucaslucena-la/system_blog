@@ -1,0 +1,22 @@
+# Ambientes virtuais
+venv/
+.env
+
+# Cache do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Banco SQLite local
+instance/
+site.db
+
+# Logs
+*.log
+
+# Arquivos temporários
+*.tmp
+*.bak
+*.swp
+.DS_Store

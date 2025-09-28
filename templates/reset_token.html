@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Definir Nova Senha{% endblock %}
+{% block content %}
+<div class="container-small">
+  <div class="content-section">
+    <h2>Definir Nova Senha</h2>
+    <form method="POST">
+      {{ form.hidden_tag() }}
+      <div class="form-group">
+        {{ form.password.label }} {{ form.password(class="form-control") }}
+        {% for e in form.password.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="form-group">
+        {{ form.confirm_password.label }} {{ form.confirm_password(class="form-control") }}
+        {% for e in form.confirm_password.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+      </div>
+      <button class="btn btn-primary" type="submit">Salvar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

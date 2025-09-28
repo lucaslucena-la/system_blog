@@ -10,13 +10,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from flask import render_template, url_for, flash, redirect, request, abort, jsonify
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_mail import Message
-
 from app import app, db, bcrypt, mail
 from models import User, Post, Role, is_moderator, is_admin
-from forms import (
-    RegistrationForm, LoginForm, UpdateAccountForm, PostForm,
-    ResetPasswordRequestForm, ResetPasswordForm, AdminUserRoleForm
-)
+from forms import (RegistrationForm, LoginForm, UpdateAccountForm, PostForm,ResetPasswordRequestForm, ResetPasswordForm, AdminUserRoleForm)
 from werkzeug.utils import secure_filename
 import secrets
 
@@ -29,9 +25,7 @@ quote_of_the_day = {
     'thread': None
 }
 
-
 # --- DECORADORES DE PERMISSÃO ---
-
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -49,7 +43,6 @@ def moderator_required(f):
             return redirect(url_for('home'))
         return f(*args, **kwargs)
     return decorated_function
-
 
 # --- THREAD: BUSCA & TRADUÇÃO DA CITAÇÃO ---
 
@@ -112,29 +105,47 @@ def get_quote():
 # --- E-MAILS ---
 
 def send_confirmation_email(user):
+    """
+    Envia e-mail de confirmação de conta.
+    Usa MAIL_DEFAULT_SENDER (ou MAIL_USERNAME) configurado no app.py.
+    """
     token = user.get_confirmation_token()
-    sender = app.config.get('MAIL_USERNAME') or app.config.get('MAIL_DEFAULT_SENDER')
-    msg = Message('Confirmação de Conta', sender=sender, recipients=[user.email])
+    msg = Message(
+        subject='Confirmação de Conta',
+        recipients=[user.email]  # não definir 'sender' aqui -> usa o default do app
+    )
     msg.body = f"""Para confirmar sua conta, clique no link:
-{url_for('confirm_account', token=token, _external=True)}
+    {url_for('confirm_account', token=token, _external=True)}
 
-Se você não se registrou em nosso blog, ignore este e-mail.
-"""
+    Se você não se registrou em nosso blog, ignore este e-mail.
+    """
     try:
+        # Log defensivo para ajudar a depurar caso falhe
+        if not (app.config.get('MAIL_DEFAULT_SENDER') or app.config.get('MAIL_USERNAME')):
+            app.logger.error("Nenhum remetente configurado (MAIL_DEFAULT_SENDER/MAIL_USERNAME).")
         mail.send(msg)
     except Exception as e:
         app.logger.error(f"Falha ao enviar e-mail de confirmação: {e}")
 
-def send_reset_email(user):
-    token = user.get_confirmation_token(expires_sec=600)
-    sender = app.config.get('MAIL_USERNAME') or app.config.get('MAIL_DEFAULT_SENDER')
-    msg = Message('Redefinição de Senha', sender=sender, recipients=[user.email])
-    msg.body = f"""Para redefinir sua senha, visite:
-{url_for('reset_token', token=token, _external=True)}
 
-Se você não solicitou, ignore este e-mail.
-"""
+def send_reset_email(user):
+    """
+    Envia e-mail de redefinição de senha (token expira em 10 min).
+    Usa MAIL_DEFAULT_SENDER (ou MAIL_USERNAME) configurado no app.py.
+    """
+    token = user.get_confirmation_token(expires_sec=600)
+    msg = Message(
+        subject='Redefinição de Senha',
+        recipients=[user.email]  # não definir 'sender' aqui -> usa o default do app
+    )
+    msg.body = f"""Para redefinir sua senha, visite:
+    {url_for('reset_token', token=token, _external=True)}
+
+    Se você não solicitou, ignore este e-mail.
+    """
     try:
+        if not (app.config.get('MAIL_DEFAULT_SENDER') or app.config.get('MAIL_USERNAME')):
+            app.logger.error("Nenhum remetente configurado (MAIL_DEFAULT_SENDER/MAIL_USERNAME).")
         mail.send(msg)
     except Exception as e:
         app.logger.error(f"Falha ao enviar e-mail de reset: {e}")
@@ -159,8 +170,7 @@ def home():
     quote = quote_of_the_day['content']
     author = quote_of_the_day['author']
     posts = Post.query.order_by(Post.date_posted.desc()).all()
-    return render_template('home.html', title='Início', posts=posts, quote=quote, author=author,
-                           is_moderator=is_moderator, is_admin=is_admin)
+    return render_template('home.html', title='Início', posts=posts, quote=quote, author=author,is_moderator=is_moderator, is_admin=is_admin)
 
 
 # --- AUTENTICAÇÃO ---
@@ -173,7 +183,7 @@ def register():
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         
-        default_role = Role.query.filter_by(name="User").first()
+        default_role = Role.query.filter_by(name="Padrão").first()
         user = User(
         username=form.username.data,
         email=form.email.data,
@@ -205,7 +215,6 @@ def login():
                 login_user(user, remember=form.remember.data)
                 flash('Login bem-sucedido!', 'success')
 
-                # ⚠️ Ajuste: quando não há "next", redireciona pelo papel
                 next_page = request.args.get('next')
                 return redirect(next_page) if next_page else redirect(redirect_by_role(user))
             else:
@@ -322,13 +331,12 @@ def user_posts(username):
     posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).all()
     quote = quote_of_the_day['content']
     author = quote_of_the_day['author']
-    return render_template('user_posts.html', title=f'Posts de {user.username}', posts=posts,
-                           user=user, quote=quote, author=author)
+    return render_template('user_posts.html', title=f'Posts de {user.username}', posts=posts,user=user, quote=quote, author=author)
 
 
 # --- DASHBOARDS ---
 
-@app.route("/dashboard")     # ← FIX do typo (antes estava @app.rote)
+@app.route("/dashboard")    
 @login_required
 def user_dashboard():
     posts = Post.query.filter_by(author=current_user).order_by(Post.date_posted.desc()).all()
@@ -361,8 +369,7 @@ def post(post_id):
     post = db.session.get(Post, post_id)
     if post is None:
         abort(404)
-    return render_template('post.html', title=post.title, post=post,
-                           is_moderator=is_moderator, is_admin=is_admin)
+    return render_template('post.html', title=post.title, post=post,is_moderator=is_moderator, is_admin=is_admin)
 
 @app.route("/post/<int:post_id>/update", methods=['GET', 'POST'])
 @login_required
@@ -413,8 +420,7 @@ def admin_users():
     users = User.query.all()
     roles = Role.query.order_by(Role.id).all()
     role_choices = [(r.id, r.name) for r in roles]
-    return render_template('admin_users.html', title='Administração de Usuários',
-                           users=users, AdminUserRoleForm=AdminUserRoleForm, role_choices=role_choices)
+    return render_template('admin_users.html', title='Administração de Usuários',users=users, AdminUserRoleForm=AdminUserRoleForm, role_choices=role_choices)
 
 @app.route("/admin/user/<int:user_id>/role", methods=['POST'])
 @admin_required

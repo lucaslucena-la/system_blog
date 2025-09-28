@@ -1,19 +1,56 @@
-# seed_roles.py
-from app import app, db
-from models import Role
+from app import app, db, bcrypt
+from models import Role, User
 
 with app.app_context():
-    roles = [
-        {"name": "User", "can_moderate": False, "can_admin": False},
-        {"name": "Moderator", "can_moderate": True, "can_admin": False},
-        {"name": "Admin", "can_moderate": True, "can_admin": True},
-    ]
+    db.create_all()
 
-    for role_data in roles:
-        role = Role.query.filter_by(name=role_data["name"]).first()
-        if not role:
-            role = Role(**role_data)
-            db.session.add(role)
-    
-    db.session.commit()
-    print("✅ Papéis criados/atualizados com sucesso!")
+    # --- Roles ---
+    roles_by_name = {r.name: r for r in Role.query.all()}
+    need_commit = False
+
+    def ensure_role(id_, name, can_moderate, can_admin):
+        global roles_by_name, need_commit
+        r = Role.query.filter_by(name=name).first()
+        if not r:
+            r = Role(id=id_, name=name, can_moderate=can_moderate, can_admin=can_admin)
+            db.session.add(r)
+            need_commit = True
+        roles_by_name[name] = r
+
+    ensure_role(1, "User",        False, False)
+    ensure_role(2, "Moderador",    True,  False)
+    ensure_role(3, "Administrador",True,  True)
+
+    if need_commit:
+        db.session.commit()
+        print(" Roles criados/garantidos.")
+
+    # --- Admin  ---
+    admin_email = "admin@systemblog.com"
+    admin = User.query.filter_by(email=admin_email).first()
+    if not admin:
+        admin = User(
+            username="admin",
+            email=admin_email,
+            password=bcrypt.generate_password_hash("admin123").decode("utf-8"),
+            role=roles_by_name["Administrador"],
+            is_active=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("Admin criado: admin@systemblog.com | senha: admin123")
+
+    # --- Moderador ---
+    mod_email = "moderador@systemblog.com"
+    mod = User.query.filter_by(email=mod_email).first()
+    if not mod:
+        mod = User(
+            username="moderador",
+            email=mod_email,
+            password=bcrypt.generate_password_hash("moderador123").decode("utf-8"),
+            role=roles_by_name["Moderador"],
+            is_active=True
+        )
+        db.session.add(mod)
+        db.session.commit()
+        print("Moderador criado: moderador@systemblog.com | senha: moderador123")
