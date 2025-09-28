@@ -7,11 +7,16 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - SECRET_KEY=dev-secret-change-me
-      - EMAIL_USER=lucaslucena.dev123@gmail.com
-      - EMAIL_PASS=qfaihhhqhaamkdpr
-      - MAIL_DEFAULT_SENDER=lucaslucena.dev123@gmail.com
+      - FLASK_ENV=development        # ou production
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-change-me}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
     volumes:
-      - .:/app
-      - ./site.db:/app/site.db   # mantém o banco fora do container
+      - .:/app                       # código para desenvolvimento
+      - dbdata:/app/instance         # banco SQLite persiste aqui (sobrescreve a subpasta 'instance')
+    # env_file:
+    #   - .env   # se preferir mover variáveis para um arquivo
 
+volumes:
+  dbdata:

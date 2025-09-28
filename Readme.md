@@ -51,10 +51,10 @@ cd system-blog
 ```bash
 docker-compose up --build
 ```
-### 2. Inicializar roles
-```bash
-docker-compose exec web python seed_roles.py
-```
+Este comando irá criar o banco no docker, as roles e também as seedings inicias:
+ - Email: admin@systemblog.com | senha: admin123
+ - Email: moderador@systemblog.com | senha: moderador123
+
 
 3. Acessar a aplicação
 👉 http://localhost:5000
@@ -100,6 +100,10 @@ Isso criará os papéis:
  - Padrão (User)
  - Moderador
  - Administrador
+
+E também criara seedings inicias ficticias:
+ - Email: admin@systemblog.com | senha: admin123
+ - moderador@systemblog.com | senha: moderador123
 
 ### 6. rodar o servidor
 ```bash

@@ -8,10 +8,6 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Banco SQLite local
-instance/
-site.db
-
 # Logs
 *.log
 
@@ -20,3 +16,6 @@ site.db
 *.bak
 *.swp
 .DS_Store
+
+# Banco de dados e pasta de instância do Flask
+instance/

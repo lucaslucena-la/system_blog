@@ -1,10 +1,10 @@
-# Imagem base do Python
+# Imagem base
 FROM python:3.11-slim
 
-# Define o diretório de trabalho
+# Diretório de trabalho
 WORKDIR /app
 
-# Copia o requirements e instala dependências
+# Dependências
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -14,9 +14,9 @@ COPY . .
 # Expondo a porta do Flask
 EXPOSE 5000
 
-# Configura variáveis padrão do Flask
+# Variáveis do Flask
 ENV FLASK_APP=app.py
 ENV FLASK_RUN_HOST=0.0.0.0
 
-# Comando para rodar a aplicação
-CMD ["flask", "run"]
+# Script de entrada que cria DB + seeds e inicia o servidor
+ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
