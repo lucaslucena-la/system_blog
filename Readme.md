@@ -57,7 +57,7 @@ Este comando irá criar o banco no docker, as roles e também as seedings inicia
 
 
 3. Acessar a aplicação
-👉 http://localhost:5000
+http://localhost:5000
 
 ---
 
