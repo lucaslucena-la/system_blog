@@ -1,26 +1,64 @@
 {% extends "base.html" %}
-{% block title %}Moderação{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/moderator_dashboard.css') }}">
+{% endblock %}
+
+{% block title %}Painel de Moderação{% endblock %}
+
 {% block content %}
-  <h2>Painel de Moderação</h2>
-  <p>Olá, {{ current_user.username }}. Aqui você pode revisar e excluir qualquer post.</p>
+<div class="container my-5">
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <h2 class="card-title text-center mb-4">Painel de Moderação</h2>
+            <p class="text-muted text-center">Olá, {{ current_user.username }}. Gerencie os posts do blog aqui.</p>
+            <hr class="my-4">
 
-  <hr>
-  {% if posts %}
-    <ul>
-      {% for post in posts %}
-        <li>
-          <a href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a>
-          <small>— por {{ post.author.username }} em {{ post.date_posted.strftime("%d/%m/%Y %H:%M") }}</small>
+            {% if posts %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th scope="col">Título</th>
+                                <th scope="col">Autor</th>
+                                <th scope="col">Data</th>
+                                <th scope="col">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for post in posts %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('post', post_id=post.id) }}" class="text-primary">{{ post.title }}</a>
+                                    </td>
+                                    <td>{{ post.author.username }}</td>
+                                    <td>{{ post.date_posted.strftime("%d/%m/%Y %H:%M") }}</td>
+                                    <td>
+                                        {% if current_user.is_authenticated and (is_moderator(current_user) or is_admin(current_user)) %}
+                                            <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display:inline;" onsubmit="return confirmDelete('{{ post.title }}')">
+                                                <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info text-center" role="alert">
+                    Sem posts para revisar no momento.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
-          {% if current_user.is_authenticated and (is_moderator(current_user) or is_admin(current_user)) %}
-            <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display:inline;">
-              <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
-            </form>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Sem posts no momento.</p>
-  {% endif %}
+{% block extra_js %}
+    <script>
+        function confirmDelete(postTitle) {
+            return confirm(`Tem certeza que deseja excluir o post "${postTitle}"? Essa ação não pode ser desfeita.`);
+        }
+    </script>
+{% endblock %}
 {% endblock %}

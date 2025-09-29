@@ -58,13 +58,4 @@ if __name__ == '__main__':
         from models import Role
         db.create_all()
 
-        if Role.query.count() == 0:
-            print("Inicializando papéis de usuário...")
-            default_role = Role(id=1, name='Padrão', can_moderate=False, can_admin=False)
-            moderator_role = Role(id=2, name='Moderador', can_moderate=True, can_admin=False)
-            admin_role = Role(id=3, name='Administrador', can_moderate=True, can_admin=True)
-            db.session.add_all([default_role, moderator_role, admin_role])
-            db.session.commit()
-            print("Papéis criados com sucesso.")
-
     app.run(debug=True)
