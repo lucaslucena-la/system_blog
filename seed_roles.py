@@ -25,7 +25,7 @@ with app.app_context():
         db.session.commit()
         print(" Roles criados/garantidos.")
 
-    # --- Admin  ---
+    # --- Cria primeiro Admin  ---
     admin_email = "admin@systemblog.com"
     admin = User.query.filter_by(email=admin_email).first()
     if not admin:

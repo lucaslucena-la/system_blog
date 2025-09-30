@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from flask_wtf import CSRFProtect
 
 
+
 # Carrega variáveis do .env 
 load_dotenv()
 

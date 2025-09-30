@@ -13,8 +13,8 @@ services:
       - EMAIL_PASS=${EMAIL_PASS}
       - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
     volumes:
-      - .:/app                       # código para desenvolvimento
-      - dbdata:/app/instance         # banco SQLite persiste aqui (sobrescreve a subpasta 'instance')
+      - .:/app                       
+      - dbdata:/app/instance         
     # env_file:
     #   - .env   # se preferir mover variáveis para um arquivo
 

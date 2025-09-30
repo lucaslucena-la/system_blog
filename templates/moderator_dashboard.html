@@ -36,6 +36,9 @@
                                     <td>
                                         {% if current_user.is_authenticated and (is_moderator(current_user) or is_admin(current_user)) %}
                                             <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display:inline;" onsubmit="return confirmDelete('{{ post.title }}')">
+
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                                                 <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
                                             </form>
                                         {% endif %}

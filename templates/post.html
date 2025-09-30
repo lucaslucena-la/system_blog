@@ -55,8 +55,10 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <!-- O formulário POST aciona a rota delete_post no views.py -->
+                    
+                    <!-- Formulário POST -->
                     <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input class="btn btn-danger" type="submit" value="Excluir Permanentemente">
                     </form>
                 </div>

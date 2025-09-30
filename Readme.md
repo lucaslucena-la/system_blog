@@ -47,15 +47,28 @@ Um sistema de blog desenvolvido com **Flask**, com suporte a registro, autentica
 git clone https://github.com/seu-usuario/system-blog.git
 cd system-blog
 ```
-### 1. Buildar e subir o container
+### 2. Buildar e subir o container
+
+Observação: O Projeto já há alguns dados cadastrados antes, caso deseje começar com os dados do zero use o primeiro comando
+
+(Caso deseje continuar com alguns dados que já estão cadastrados pule para o segundo comando)
+
+
+```bash
+docker-compose down
+```
+
+Após o comando acima use:
+
 ```bash
 docker-compose up --build
 ```
-Este comando irá criar o banco no docker, as roles e também as seedings inicias:
+Este comando irá criar o banco no docker caso esteja vazio, as roles e também as seedings inicias:
  - Email: admin@systemblog.com | senha: admin123
 
 
-3. Acessar a aplicação
+
+### 3. Acessar a aplicação
 http://localhost:5000
 
 ---
