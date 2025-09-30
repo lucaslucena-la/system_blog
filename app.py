@@ -6,6 +6,8 @@ from flask_bcrypt import Bcrypt
 from itsdangerous import URLSafeTimedSerializer
 import os
 from dotenv import load_dotenv  
+from flask_wtf import CSRFProtect
+
 
 # Carrega variáveis do .env 
 load_dotenv()
@@ -52,6 +54,7 @@ import views
 from models import is_admin, is_moderator
 app.jinja_env.globals.update(is_admin=is_admin, is_moderator=is_moderator)
 
+csrf = CSRFProtect(app) 
 
 if __name__ == '__main__':
     with app.app_context():

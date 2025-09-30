@@ -39,18 +39,3 @@ with app.app_context():
         db.session.add(admin)
         db.session.commit()
         print("Admin criado: admin@systemblog.com | senha: admin123")
-
-    # --- Moderador ---
-    mod_email = "moderador@systemblog.com"
-    mod = User.query.filter_by(email=mod_email).first()
-    if not mod:
-        mod = User(
-            username="moderador",
-            email=mod_email,
-            password=bcrypt.generate_password_hash("moderador123").decode("utf-8"),
-            role=roles_by_name["Moderador"],
-            is_active=True
-        )
-        db.session.add(mod)
-        db.session.commit()
-        print("Moderador criado: moderador@systemblog.com | senha: moderador123")

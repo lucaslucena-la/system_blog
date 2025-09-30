@@ -53,7 +53,6 @@ docker-compose up --build
 ```
 Este comando irá criar o banco no docker, as roles e também as seedings inicias:
  - Email: admin@systemblog.com | senha: admin123
- - Email: moderador@systemblog.com | senha: moderador123
 
 
 3. Acessar a aplicação
@@ -103,7 +102,6 @@ Isso criará os papéis:
 
 E também criara seedings inicias ficticias:
  - Email: admin@systemblog.com | senha: admin123
- - moderador@systemblog.com | senha: moderador123
 
 ### 6. rodar o servidor
 ```bash

@@ -34,6 +34,9 @@
                         <td data-label="Ações">
                             <!-- Formulário para alterar o papel de um usuário -->
                             <form method="POST" action="{{ url_for('admin_user_role_update', user_id=user_item.id) }}" class="role-form">
+
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                                 {% set form = AdminUserRoleForm() %}
                                 
                                 <select name="{{ form.role_id.name }}" class="form-control-select">
