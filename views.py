@@ -15,6 +15,8 @@ from models import User, Post, Role, is_moderator, is_admin
 from forms import (RegistrationForm, LoginForm, UpdateAccountForm, PostForm,ResetPasswordRequestForm, ResetPasswordForm, AdminUserRoleForm)
 from werkzeug.utils import secure_filename
 import secrets
+from sqlalchemy import desc
+
 
 
 # --- CITAÇÃO (estado global simples) ---
@@ -169,7 +171,9 @@ def redirect_by_role(user):
 def home():
     quote = quote_of_the_day['content']
     author = quote_of_the_day['author']
-    posts = Post.query.order_by(Post.date_posted.desc()).all()
+
+    posts = (Post.query.join(User, Post.user_id == User.id).join (Role, User.role_id == Role.id).order_by(desc(Role.can_admin), desc(Post.date_posted)).all())
+    
     return render_template('home.html', title='Início', posts=posts, quote=quote, author=author,is_moderator=is_moderator, is_admin=is_admin)
 
 
@@ -250,7 +254,6 @@ def confirm_account(token):
     db.session.commit()
     flash('Conta ativada! Agora você pode fazer login.', 'success')
     return redirect(url_for('login'))
-
 
 # --- RESET DE SENHA ---
 
@@ -346,7 +349,13 @@ def user_dashboard():
 @login_required
 @moderator_required
 def moderator_dashboard():
-    posts = Post.query.order_by(Post.date_posted.desc()).all()
+    posts = (
+        Post.query
+        .join(User, Post.user_id == User.id)
+        .join(Role, User.role_id == Role.id)
+        .order_by(desc(Role.can_admin), desc(Post.date_posted))
+        .all()
+    )
     return render_template('moderator_dashboard.html', title='Moderação', posts=posts)
 
 
