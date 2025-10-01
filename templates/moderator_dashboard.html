@@ -26,6 +26,8 @@
                             </tr>
                         </thead>
                         <tbody>
+                            
+
                             {% for post in posts %}
                                 <tr>
                                     <td>
@@ -34,15 +36,17 @@
                                     <td>{{ post.author.username }}</td>
                                     <td>{{ post.date_posted.strftime("%d/%m/%Y %H:%M") }}</td>
                                     <td>
-                                        {% if current_user.is_authenticated and (is_moderator(current_user) or is_admin(current_user)) %}
-                                            <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display:inline;" onsubmit="return confirmDelete('{{ post.title }}')">
-
-                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                                                <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
-                                            </form>
+                                        {% if current_user.is_authenticated %}
+                                            {# Admin pode excluir qualquer post; moderador pode excluir posts exceto de admins #}
+                                            {% if is_admin(current_user) or (is_moderator(current_user) and not is_admin(post.author)) %}
+                                                <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display:inline;" onsubmit="return confirmDelete('{{ post.title }}')">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                                                </form>
+                                            {% endif %}
                                         {% endif %}
                                     </td>
+
                                 </tr>
                             {% endfor %}
                         </tbody>

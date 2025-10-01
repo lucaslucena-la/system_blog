@@ -401,7 +401,8 @@ def delete_post(post_id):
         abort(404)
 
     # Autor OU moderador OU admin podem excluir
-    is_authorized = (post.author == current_user) or is_moderator(current_user) or is_admin(current_user)
+    # Moderador pode excluir QUALQUER post, EXCETO se o autor for admin.
+    is_authorized = (post.author == current_user) or is_admin(current_user) or (is_moderator(current_user) and not is_admin(post.author))
     if not is_authorized:
         flash('Você não tem permissão para excluir este post.', 'danger')
         return redirect(url_for('post', post_id=post.id))

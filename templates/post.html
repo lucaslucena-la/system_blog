@@ -9,54 +9,64 @@
                         <a class="mr-2" href="{{ url_for('user_posts', username=post.author.username) }}">{{ post.author.username }}</a>
                         <small class="text-muted">{{ post.date_posted.strftime('%d/%m/%Y, %H:%M') }}</small>
                     </div>
-                    
-                    <!-- Lógica de Permissões: Visível se for autor OU moderador/admin -->
-                    {% if current_user.is_authenticated %}
-                        {% if post.author == current_user or is_moderator(current_user) %}
-                            <div class="mt-2">
-                                <!-- Botão Editar: Visível APENAS para o autor -->
-                                {% if post.author == current_user %}
-                                    <a class="btn btn-info btn-sm" href="{{ url_for('update_post', post_id=post.id) }}">Editar</a>
-                                {% endif %}
-                                
-                                {% if current_user.is_authenticated and (post.author == current_user or is_moderator(current_user) or is_admin(current_user)) %}
-                                
-                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal">
-                                        Excluir
-                                    </button>
-                                {% endif %}
 
-                            </div>
-                        {% endif %}
+                    {# ---- Regras de ação ---- #}
+                    {% set allow_edit = current_user.is_authenticated and (post.author == current_user) %}
+                    {# Admin pode excluir tudo; autor pode excluir o próprio; moderador pode excluir tudo EXCETO post de admin #}
+                    {% set allow_delete = current_user.is_authenticated and (
+                        is_admin(current_user) or
+                        post.author == current_user or
+                        (is_moderator(current_user) and not is_admin(post.author))
+                    ) %}
+
+                    {% if allow_edit or allow_delete %}
+                        <div class="mt-2">
+                            {# Botão Editar: apenas autor #}
+                            {% if allow_edit %}
+                                <a class="btn btn-info btn-sm" href="{{ url_for('update_post', post_id=post.id) }}">Editar</a>
+                            {% endif %}
+
+                            {# Botão Excluir: conforme regra (moderador não exclui post de admin) #}
+                            {% if allow_delete %}
+                                <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal">
+                                    Excluir
+                                </button>
+                            {% endif %}
+                        </div>
                     {% endif %}
                 </div>
             </div>
+
             <h2 class="article-title">{{ post.title }}</h2>
-            <!-- O filtro |safe permite quebra de linha ou HTML, se houver -->
+
             <div class="article-content">
                 {{ post.content|safe }}
             </div>
         </article>
     </div>
 
-    <!-- Modal de Confirmação de Exclusão (Requisito: NÃO usar alert()) -->
-    <!-- Este modal só é útil se for renderizado e ativado pelo botão acima -->
+    {# Modal de confirmação de exclusão só é renderizado se houver permissão para excluir #}
+    {% if current_user.is_authenticated and (
+        is_admin(current_user) or
+        post.author == current_user or
+        (is_moderator(current_user) and not is_admin(post.author))
+    ) %}
     <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="deleteModalLabel">Confirmação de Exclusão</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    Tem certeza de que deseja excluir o post **"{{ post.title }}"**? Esta ação é irreversível.
+                    Tem certeza de que deseja excluir o post <strong>"{{ post.title }}"</strong>? Esta ação é irreversível.
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    
-                    <!-- Formulário POST -->
+
+                    <!-- Formulário POST com CSRF -->
                     <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display: inline;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input class="btn btn-danger" type="submit" value="Excluir Permanentemente">
@@ -65,11 +75,11 @@
             </div>
         </div>
     </div>
+    {% endif %}
 {% endblock content %}
 
 {% block scripts %}
-    <!-- Scripts Adicionais para o Modal (Necessário carregar jQuery e Bootstrap JS) -->
-    <!-- Estes devem ser carregados no final do <body> para evitar erros -->
+    <!-- Scripts do Modal Bootstrap -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
